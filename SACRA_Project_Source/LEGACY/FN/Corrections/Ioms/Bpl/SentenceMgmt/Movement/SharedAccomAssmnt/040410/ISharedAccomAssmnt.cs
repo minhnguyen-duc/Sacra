@@ -22,7 +22,7 @@ namespace Corrections.Ioms.Bpl.Movement.SharedAccomAssmnt.Services.Web
         RecordRowCollection ValidateIndividualSACRA(string offenderId, string sacraTypeCode, string sacraResultCode);
 
         [OperationContract(), TransactionFlow(TransactionFlowOption.Allowed)]
-        string PrepareSACRAActiveChargeRequests(string cellSharingAssessId);
+        string PrepareSACRAActiveChargeRequests(string cellSharingAssessId, string prisonerIds);
         [OperationContract(), TransactionFlow(TransactionFlowOption.Allowed)]
         SACRAResultDetails SaveSACRAReportDocument(SACRAResultDetails resultDetails);
         [OperationContract(), TransactionFlow(TransactionFlowOption.Allowed)]

@@ -61,10 +61,10 @@ namespace Corrections.Ioms.Services.Proxies.Service040410
         System.Threading.Tasks.Task<RecordRowCollection> ValidateIndividualSACRAAsync(string offenderId, string sacraTypeCode, string sacraResultCode);
         [System.ServiceModel.OperationContractAttribute(Action = "http://Corrections.Ioms.Bpl/ISharedAccomAssmnt/PrepareSACRAActiveChargeRequests", ReplyAction = "http://Corrections.Ioms.Bpl/ISharedAccomAssmnt/PrepareSACRAActiveChargeRequestsResponse")]
         [System.ServiceModel.TransactionFlowAttribute(System.ServiceModel.TransactionFlowOption.Allowed)]
-        string PrepareSACRAActiveChargeRequests(string cellSharingAssessId);
+        string PrepareSACRAActiveChargeRequests(string cellSharingAssessId, string prisonerIds);
 
-        [System.ServiceModel.OperationContractAttribute(Action = "http://Corrections.Ioms.Bpl/ISharedAccomAssmnt/PrepareSACRAActiveChargeRequests", ReplyAction = "http://Corrections.Ioms.Bpl/ISharedAccomAssmnt/PrepareSACRAActiveChargeRequestsResponse")] 
-         System.Threading.Tasks.Task<string> PrepareSACRAActiveChargeRequestsAsync(string cellSharingAssessId);
+        [System.ServiceModel.OperationContractAttribute(Action = "http://Corrections.Ioms.Bpl/ISharedAccomAssmnt/PrepareSACRAActiveChargeRequests", ReplyAction = "http://Corrections.Ioms.Bpl/ISharedAccomAssmnt/PrepareSACRAActiveChargeRequestsResponse")]
+         System.Threading.Tasks.Task<string> PrepareSACRAActiveChargeRequestsAsync(string cellSharingAssessId, string prisonerIds);
         /* Individual SACRA NTDB Changes #57727 - Ends*/
         [System.ServiceModel.OperationContractAttribute(Action = "http://Corrections.Ioms.Bpl/ISharedAccomAssmnt/SaveSACRAReportDocument", ReplyAction = "http://Corrections.Ioms.Bpl/ISharedAccomAssmnt/SaveSACRAReportDocumentResponse")]
         [System.ServiceModel.TransactionFlowAttribute(System.ServiceModel.TransactionFlowOption.Allowed)]
@@ -183,14 +183,14 @@ namespace Corrections.Ioms.Services.Proxies.Service040410
             return base.Channel.ValidateIndividualSACRAAsync(offenderId, sacraTypeCode, sacraResultCode);
         }
 
-        public string PrepareSACRAActiveChargeRequests(string cellSharingAssessId)
+        public string PrepareSACRAActiveChargeRequests(string cellSharingAssessId, string prisonerIds)
         {
-            return base.Channel.PrepareSACRAActiveChargeRequests(cellSharingAssessId);
+            return base.Channel.PrepareSACRAActiveChargeRequests(cellSharingAssessId, prisonerIds);
         }
 
-        public System.Threading.Tasks.Task<string> PrepareSACRAActiveChargeRequestsAsync(string cellSharingAssessId)
+        public System.Threading.Tasks.Task<string> PrepareSACRAActiveChargeRequestsAsync(string cellSharingAssessId, string prisonerIds)
         {
-            return base.Channel.PrepareSACRAActiveChargeRequestsAsync(cellSharingAssessId);
+            return base.Channel.PrepareSACRAActiveChargeRequestsAsync(cellSharingAssessId, prisonerIds);
         }
 
         /* Individual SACRA NTDB Changes #57727 - Ends*/

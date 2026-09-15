@@ -322,9 +322,10 @@ namespace Corrections.Ioms.Bpl.Movement.SharedAccomAssmnt.DataAbstration
         /// <summary>
         /// Prepares QAC active charge request ids for Combined SACRA Report.
         /// </summary>
-        /// <param name="cellSharingAssessId">Cell sharing risk assessment id.</param>
+        /// <param name="cellSharingAssessId">Cell sharing risk assessment id (existing/edited record).</param>
+        /// <param name="prisonerIds">Comma-separated prisoner ids, used when the record has not been saved yet (mutually exclusive with cellSharingAssessId).</param>
         /// <returns>Comma-separated QAC request ids.</returns>
-        public RecordRowCollection PrepareSACRAActiveChargeRequests(string cellSharingAssessId)
+        public RecordRowCollection PrepareSACRAActiveChargeRequests(string cellSharingAssessId, string prisonerIds)
         {
             RecordRowCollection resultCollection = null;
 
@@ -332,7 +333,8 @@ namespace Corrections.Ioms.Bpl.Movement.SharedAccomAssmnt.DataAbstration
             {
                 StoredProcCommand storedProcCommand = new StoredProcCommand("ioms.pkg_sacra_result.ro_getrequestid");
 
-                storedProcCommand.AddParameter("pi_cell_sharing_assmnt_id", cellSharingAssessId, Direction.Input);
+                storedProcCommand.AddParameter("pi_cell_sharing_assmnt_id", string.IsNullOrEmpty(cellSharingAssessId) ? (object)DBNull.Value : cellSharingAssessId, Direction.Input);
+                storedProcCommand.AddParameter("pi_prisoner_ids", string.IsNullOrEmpty(prisonerIds) ? (object)DBNull.Value : prisonerIds, Direction.Input);
 
                 resultCollection = _oracleHelper.ExecuteSearchProcs(storedProcCommand);
             }

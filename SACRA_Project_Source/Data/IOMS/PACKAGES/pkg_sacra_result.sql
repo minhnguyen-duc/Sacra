@@ -50,7 +50,8 @@ CREATE OR REPLACE PACKAGE pkg_sacra_result IS
     po_cursor             OUT iomstypes.rs_out_ref_cursor
    );
    PROCEDURE ro_getrequestid(
-    pi_cell_sharing_assmnt_id IN VARCHAR2,
+    pi_cell_sharing_assmnt_id IN VARCHAR2 DEFAULT NULL,
+    pi_prisoner_ids            IN VARCHAR2 DEFAULT NULL,
     po_cursor                 IN OUT iomstypes.rs_out_ref_cursor
 );
 END pkg_sacra_result;
@@ -525,7 +526,8 @@ BEGIN
 END ro_get_sacra_report_document_info;
 
 	PROCEDURE ro_getrequestid(
-    pi_cell_sharing_assmnt_id IN VARCHAR2,
+    pi_cell_sharing_assmnt_id IN VARCHAR2 DEFAULT NULL,
+    pi_prisoner_ids            IN VARCHAR2 DEFAULT NULL,
     po_cursor                 IN OUT iomstypes.rs_out_ref_cursor
 )
 AS
@@ -536,31 +538,61 @@ AS
 BEGIN
     l_request_ids := NULL;
 
-    FOR r IN (
-        SELECT csp.prisoner_id
-          FROM ioms.om_cell_sharing_prisoner csp
-         WHERE csp.cell_sharing_risk_assmnt_id = pi_cell_sharing_assmnt_id
-         ORDER BY csp.prisoner_order_num
-    )
-    LOOP
-        l_request_id := NULL;
+    -- Prisoner source: an existing SACRA assessment (pi_cell_sharing_assmnt_id), or prisoner ids
+    -- selected in the UI but not yet saved to any assessment (pi_prisoner_ids) - used when the
+    -- Combined SACRA Report is run before the record is saved.
+    IF pi_cell_sharing_assmnt_id IS NOT NULL THEN
+        FOR r IN (
+            SELECT csp.prisoner_id
+              FROM ioms.om_cell_sharing_prisoner csp
+             WHERE csp.cell_sharing_risk_assmnt_id = pi_cell_sharing_assmnt_id
+             ORDER BY csp.prisoner_order_num
+        )
+        LOOP
+            l_request_id := NULL;
 
-        IOMS.rw_qac_request_bulk(
-            r.prisoner_id,
-            0,
-            l_request_id,
-            l_roc_unavailable_reason,
-            l_request_status
-        );
+            IOMS.rw_qac_request_bulk(
+                r.prisoner_id,
+                0,
+                l_request_id,
+                l_roc_unavailable_reason,
+                l_request_status
+            );
 
-        IF l_request_id IS NOT NULL THEN
-            IF l_request_ids IS NULL THEN
-                l_request_ids := TO_CHAR(l_request_id);
-            ELSE
-                l_request_ids := l_request_ids || ',' || TO_CHAR(l_request_id);
+            IF l_request_id IS NOT NULL THEN
+                IF l_request_ids IS NULL THEN
+                    l_request_ids := TO_CHAR(l_request_id);
+                ELSE
+                    l_request_ids := l_request_ids || ',' || TO_CHAR(l_request_id);
+                END IF;
             END IF;
-        END IF;
-    END LOOP;
+        END LOOP;
+    ELSIF pi_prisoner_ids IS NOT NULL THEN
+        FOR r IN (
+            SELECT TRIM(column_value) AS prisoner_id
+              FROM TABLE(ioms.fn_split(pi_prisoner_ids, ','))
+             WHERE TRIM(column_value) IS NOT NULL
+        )
+        LOOP
+            l_request_id := NULL;
+
+            IOMS.rw_qac_request_bulk(
+                r.prisoner_id,
+                0,
+                l_request_id,
+                l_roc_unavailable_reason,
+                l_request_status
+            );
+
+            IF l_request_id IS NOT NULL THEN
+                IF l_request_ids IS NULL THEN
+                    l_request_ids := TO_CHAR(l_request_id);
+                ELSE
+                    l_request_ids := l_request_ids || ',' || TO_CHAR(l_request_id);
+                END IF;
+            END IF;
+        END LOOP;
+    END IF;
 
     OPEN po_cursor FOR
         SELECT l_request_ids AS REQUEST_IDS

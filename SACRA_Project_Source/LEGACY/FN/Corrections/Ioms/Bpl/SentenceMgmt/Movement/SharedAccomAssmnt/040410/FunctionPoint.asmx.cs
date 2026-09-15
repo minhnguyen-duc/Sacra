@@ -75,10 +75,10 @@ namespace Corrections.Ioms.Bpl.Movement.SharedAccomAssmnt.Services.Web
         /// <param name="cellSharingAssessId">Search Criteria</param>
         /// <returns>Record Rows Satisfying the result.</returns>
         [OperationBehavior(Impersonation = ImpersonationOption.NotAllowed)]
-        public string PrepareSACRAActiveChargeRequests(string cellSharingAssessId)
+        public string PrepareSACRAActiveChargeRequests(string cellSharingAssessId, string prisonerIds)
         {
             SACRAResultLogic resultLogic = new SACRAResultLogic();
-            return resultLogic.PrepareSACRAActiveChargeRequests(cellSharingAssessId);
+            return resultLogic.PrepareSACRAActiveChargeRequests(cellSharingAssessId, prisonerIds);
         }
 
         /// <summary>

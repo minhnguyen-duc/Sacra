@@ -1,26 +1,46 @@
-CREATE OR REPLACE PROCEDURE ro_getcompsacradetails(    
-							   pi_cell_sharing_risk_assmnt_id IN VARCHAR2,
+CREATE OR REPLACE PROCEDURE ro_getcompsacradetails(
+							   pi_cell_sharing_risk_assmnt_id IN VARCHAR2 DEFAULT NULL,
+							   pi_prisoner_ids                 IN VARCHAR2 DEFAULT NULL,
 po_cursor                      IN OUT iomstypes.rs_out_ref_cursor
 )
 
 AS
 BEGIN
-FOR r IN (
-    SELECT
-        csp.prisoner_id
-    FROM
-        ioms.om_cell_sharing_prisoner csp
-    WHERE
-        csp.cell_sharing_risk_assmnt_id = pi_cell_sharing_risk_assmnt_id
-    ORDER BY
-        csp.prisoner_order_num
-)
-LOOP
-    ioms.pkg_cell_sharing_snapshot.refresh_cell_sharing_offender(r.prisoner_id);
-END LOOP;
+IF pi_cell_sharing_risk_assmnt_id IS NOT NULL THEN
+    FOR r IN (
+        SELECT
+            csp.prisoner_id
+        FROM
+            ioms.om_cell_sharing_prisoner csp
+        WHERE
+            csp.cell_sharing_risk_assmnt_id = pi_cell_sharing_risk_assmnt_id
+        ORDER BY
+            csp.prisoner_order_num
+    )
+    LOOP
+        ioms.pkg_cell_sharing_snapshot.refresh_cell_sharing_offender(r.prisoner_id);
+    END LOOP;
+ELSIF pi_prisoner_ids IS NOT NULL THEN
+    FOR r IN (
+        SELECT
+            TRIM(column_value) AS prisoner_id
+        FROM
+            TABLE(ioms.fn_split(pi_prisoner_ids, ','))
+        WHERE
+            TRIM(column_value) IS NOT NULL
+    )
+    LOOP
+        ioms.pkg_cell_sharing_snapshot.refresh_cell_sharing_offender(r.prisoner_id);
+    END LOOP;
+END IF;
 
 COMMIT;
 
+-- Two selectable prisoner sources, gated by which parameter is supplied:
+--   1) an existing SACRA assessment (pi_cell_sharing_risk_assmnt_id) - the original, unchanged path.
+--   2) prisoner ids selected in the UI but not yet saved to any assessment (pi_prisoner_ids) - used
+--      by the Combined SACRA Report when run before the record is saved. Pairing/order is taken from
+--      the position of each id in the comma-separated list (A first, then B), mirroring prisoner_order_num.
 OPEN po_cursor FOR
     WITH ordered_prisoners AS (
         SELECT
@@ -35,7 +55,31 @@ OPEN po_cursor FOR
         FROM
             ioms.om_cell_sharing_prisoner csp
         WHERE
-            csp.cell_sharing_risk_assmnt_id = pi_cell_sharing_risk_assmnt_id
+            pi_cell_sharing_risk_assmnt_id IS NOT NULL
+            AND csp.cell_sharing_risk_assmnt_id = pi_cell_sharing_risk_assmnt_id
+
+        UNION ALL
+
+        SELECT
+            pi_cell_sharing_risk_assmnt_id  AS cell_sharing_risk_assmnt_id,
+            TRIM(sp.column_value)           AS prisoner_id,
+            sp.rn - 1                       AS prisoner_order_num,
+            FLOOR((sp.rn - 1) / 2) + 1       AS pair_group_no,
+            CASE
+                WHEN MOD(sp.rn - 1, 2) = 0 THEN 'A'
+                ELSE 'B'
+            END AS pair_slot
+        FROM (
+            SELECT
+                column_value,
+                ROWNUM AS rn
+            FROM
+                TABLE(ioms.fn_split(pi_prisoner_ids, ','))
+        ) sp
+        WHERE
+            pi_cell_sharing_risk_assmnt_id IS NULL
+            AND pi_prisoner_ids IS NOT NULL
+            AND TRIM(sp.column_value) IS NOT NULL
     ),
     off_data AS (
         SELECT DISTINCT

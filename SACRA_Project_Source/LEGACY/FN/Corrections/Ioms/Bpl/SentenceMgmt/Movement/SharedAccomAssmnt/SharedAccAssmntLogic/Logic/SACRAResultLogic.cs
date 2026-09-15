@@ -38,17 +38,18 @@ namespace Corrections.Ioms.Bpl.Movement.SharedAccomAssmnt.SharedAccomAssmntLogic
         /// <summary>
         /// Prepares QAC active charge request ids for Combined SACRA Report.
         /// </summary>
-        /// <param name="cellSharingAssessId">Cell sharing risk assessment id.</param>
+        /// <param name="cellSharingAssessId">Cell sharing risk assessment id (existing/edited record).</param>
+        /// <param name="prisonerIds">Comma-separated prisoner ids, used when the record has not been saved yet (mutually exclusive with cellSharingAssessId).</param>
         /// <returns>Comma-separated QAC request ids.</returns>
-        public string PrepareSACRAActiveChargeRequests(string cellSharingAssessId)
+        public string PrepareSACRAActiveChargeRequests(string cellSharingAssessId, string prisonerIds)
         {
-            if (string.IsNullOrWhiteSpace(cellSharingAssessId))
+            if (string.IsNullOrWhiteSpace(cellSharingAssessId) && string.IsNullOrWhiteSpace(prisonerIds))
             {
                 return string.Empty;
             }
 
             SACRAResultDAL resultDAL = new SACRAResultDAL();
-            RecordRowCollection requestIdRows = resultDAL.PrepareSACRAActiveChargeRequests(cellSharingAssessId);
+            RecordRowCollection requestIdRows = resultDAL.PrepareSACRAActiveChargeRequests(cellSharingAssessId, prisonerIds);
 
             if (requestIdRows == null || requestIdRows.Count == 0)
             {

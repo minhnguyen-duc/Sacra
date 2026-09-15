@@ -342,19 +342,20 @@ namespace Corrections.Ioms.UI.Controllers.RiskAssessment
         /// </summary>
         /// <param name="cellSharingAssessId">Cell sharing risk assessment id for group report.</param>
         /// <param name="prisonerId">Offender id for single-prisoner SACRA report.</param>
+        /// <param name="prisonerIds">Selected prisoner ids for a CombinedSACRA report run before the record has been saved (no cellSharingAssessId yet).</param>
         /// <param name="isAutoPopulate">True when the generated report PDF should be cached for document save.</param>
         /// <returns>JSON Result returns True if session set successfully</returns>
         [HttpPost]
-        public JsonResult SetReportParameter(string cellSharingAssessId, string prisonerId, bool isAutoPopulate)
+        public JsonResult SetReportParameter(string cellSharingAssessId, string prisonerId, List<string> prisonerIds, bool isAutoPopulate)
         {
-            SetSACRAReportParameter(cellSharingAssessId, prisonerId, isAutoPopulate);
+            SetSACRAReportParameter(cellSharingAssessId, prisonerId, prisonerIds, isAutoPopulate);
             return Json(true, JsonRequestBehavior.AllowGet);
         }
 
         /// <summary>
         /// Centralises SACRA report session setup so manual report click and save-success auto-run use the same parameters.
         /// </summary>
-        private void SetSACRAReportParameter(string cellSharingAssessId, string prisonerId, bool isAutoPopulate)
+        private void SetSACRAReportParameter(string cellSharingAssessId, string prisonerId, List<string> prisonerIds, bool isAutoPopulate)
         {
             IOMSSessionManager.SetCacheValueMultiTab(SSRSReportConstants.SACRA_UNITCHK, CommonConstants.STRONE);
             IOMSSessionManager.RemoveCacheEntryMultiTab(SSRSReportConstants.SACRA_GRID);
@@ -369,13 +370,38 @@ namespace Corrections.Ioms.UI.Controllers.RiskAssessment
                 IOMSSessionManager.RemoveCacheEntryMultiTab(SSRSReportConstants.SACRA_OFFENDERIDS);
             }
 
+            // The CombinedSACRA report has two prisoner sources: an already-saved record (cellSharingAssessId),
+            // or prisoner ids selected in the UI before the record has ever been saved (prisonerIds). Both feed
+            // ro_getcompsacradetails/ro_getrequestid, which accept either parameter (mutually exclusive).
+            string prisonerIdsCsv = prisonerIds != null && prisonerIds.Count > 0 ? string.Join(",", prisonerIds) : string.Empty;
+
             if (string.IsNullOrEmpty(prisonerId) && !string.IsNullOrEmpty(cellSharingAssessId))
             {
                 IOMSSessionManager.SetCacheValueMultiTab(SSRSReportConstants.CELL_SHARING_RISK_ASSESSMENT_ID, cellSharingAssessId);
+                IOMSSessionManager.RemoveCacheEntryMultiTab(SSRSReportConstants.SACRA_COMBINED_PRISONER_IDS);
 
                 using (IClientProxy<ISharedAccomAssmnt> sacraResultClient = IOMSProxyHelper.GetService<ISharedAccomAssmnt>(ServiceConstants.SERVICE_SACRA_RESULT_040410, CommonConstants.PS_SERVICE))
                 {
-                    string qacRequestIds = sacraResultClient.Service.PrepareSACRAActiveChargeRequests(cellSharingAssessId);
+                    string qacRequestIds = sacraResultClient.Service.PrepareSACRAActiveChargeRequests(cellSharingAssessId, string.Empty);
+
+                    if (!string.IsNullOrEmpty(qacRequestIds))
+                    {
+                        IOMSSessionManager.SetCacheValueMultiTab(SSRSReportConstants.SACRA_QAC_REQUEST_IDS, qacRequestIds);
+                    }
+                    else
+                    {
+                        IOMSSessionManager.RemoveCacheEntryMultiTab(SSRSReportConstants.SACRA_QAC_REQUEST_IDS);
+                    }
+                }
+            }
+            else if (string.IsNullOrEmpty(prisonerId) && !string.IsNullOrEmpty(prisonerIdsCsv))
+            {
+                IOMSSessionManager.RemoveCacheEntryMultiTab(SSRSReportConstants.CELL_SHARING_RISK_ASSESSMENT_ID);
+                IOMSSessionManager.SetCacheValueMultiTab(SSRSReportConstants.SACRA_COMBINED_PRISONER_IDS, prisonerIdsCsv);
+
+                using (IClientProxy<ISharedAccomAssmnt> sacraResultClient = IOMSProxyHelper.GetService<ISharedAccomAssmnt>(ServiceConstants.SERVICE_SACRA_RESULT_040410, CommonConstants.PS_SERVICE))
+                {
+                    string qacRequestIds = sacraResultClient.Service.PrepareSACRAActiveChargeRequests(string.Empty, prisonerIdsCsv);
 
                     if (!string.IsNullOrEmpty(qacRequestIds))
                     {
@@ -390,6 +416,7 @@ namespace Corrections.Ioms.UI.Controllers.RiskAssessment
             else
             {
                 IOMSSessionManager.RemoveCacheEntryMultiTab(SSRSReportConstants.CELL_SHARING_RISK_ASSESSMENT_ID);
+                IOMSSessionManager.RemoveCacheEntryMultiTab(SSRSReportConstants.SACRA_COMBINED_PRISONER_IDS);
                 IOMSSessionManager.RemoveCacheEntryMultiTab(SSRSReportConstants.SACRA_QAC_REQUEST_IDS);
             }
 
@@ -412,6 +439,8 @@ namespace Corrections.Ioms.UI.Controllers.RiskAssessment
         {
             string cellSharingAssessId = IOMSSessionManager?.GetCacheValueMultiTab<string>(SSRSReportConstants.CELL_SHARING_RISK_ASSESSMENT_ID) ?? string.Empty;
 
+            string prisonerIdsCsv = IOMSSessionManager?.GetCacheValueMultiTab<string>(SSRSReportConstants.SACRA_COMBINED_PRISONER_IDS) ?? string.Empty;
+
             string qacRequestIds = IOMSSessionManager?.GetCacheValueMultiTab<string>(SSRSReportConstants.SACRA_QAC_REQUEST_IDS) ?? string.Empty;
 
             var reportParams = new Dictionary<string, object>
@@ -419,6 +448,8 @@ namespace Corrections.Ioms.UI.Controllers.RiskAssessment
                 { SSRSReportConstants.OP_REQUESTOR, GetReportUser() },
 
                 { SSRSReportConstants.CELL_SHARING_RISK_ASSESSMENT_ID, cellSharingAssessId },
+
+                { SSRSReportConstants.SACRA_COMBINED_PRISONER_IDS, prisonerIdsCsv },
 
                 { SSRSReportConstants.PI_QAC_REQUEST_IDS, qacRequestIds }
             };
@@ -431,6 +462,7 @@ namespace Corrections.Ioms.UI.Controllers.RiskAssessment
 
                 if (isAutopopulate && !string.IsNullOrWhiteSpace(cellSharingAssessId))
                 {
+                    // Existing/edited record: the ApplicationId already exists, so attach the document now.
                     string documentPdf = Convert.ToBase64String(resultbyteArr);
 
                     using (IClientProxy<ISharedAccomAssmnt> sacraResultClient =IOMSProxyHelper.GetService<ISharedAccomAssmnt>(ServiceConstants.SERVICE_SACRA_RESULT_040410,CommonConstants.PS_SERVICE))
@@ -444,7 +476,12 @@ namespace Corrections.Ioms.UI.Controllers.RiskAssessment
                        sacraResultClient.Service.SaveSACRAReportDocument(documentDetails);
                     }
                 }
-
+                else if (isAutopopulate)
+                {
+                    // Not-yet-saved record (prisoner ids only, no ApplicationId yet): cache the PDF so Save()
+                    // can pick it up via SACRADocumentData and attach it once the record is actually persisted.
+                    IOMSSessionManager.SetCacheValueMultiTab(SessionConstants.SACRADocumentData, Convert.ToBase64String(resultbyteArr));
+                }
                 else
                 {
                     IOMSSessionManager.RemoveCacheEntryMultiTab(SessionConstants.SACRADocumentData);
