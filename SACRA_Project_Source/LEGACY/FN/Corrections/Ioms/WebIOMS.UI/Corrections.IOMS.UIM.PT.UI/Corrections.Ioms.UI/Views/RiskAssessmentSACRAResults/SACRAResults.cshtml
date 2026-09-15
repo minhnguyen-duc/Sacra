@@ -1,0 +1,278 @@
+
+@{
+    ViewBag.Title = "SACRA Result";
+@* Layout = "~/Views/Shared/_OffenderLayout_CPS.cshtml"; *@
+
+    <script type="text/javascript">
+        var sacraResultsResources = JSON.parse(@Html.Raw(Json.Encode(ViewBag.SACRAResultsResourceSet)));
+        var assessmentTypes = @Html.Raw(Json.Encode(ViewBag.AssessmentCtrSource));
+        var sacraResultUserActionForPrisoner = @Html.Raw(Json.Encode(ViewBag.UserActionForPrisoner));
+        var sacraResultUserActionForOtherDetails = @Html.Raw(Json.Encode(ViewBag.UserActionForOtherDetails));
+        var isCUDAllowed = @Html.Raw(Json.Encode(ViewBag.CUDAllowed));
+    </script>
+}
+@Scripts.Render("~/WebIoms/RiskAssessment/SACRAResults/SACRAResults")
+
+<div class="mrgTop10">
+    <ul class="panelbar accordianPanel" id="dvSacraResult">
+        <li class="k-state-active">
+            <span class="k-link k-state-selected">SACRA Search Criteria</span>
+            <div class="clearfix">
+                <div class="accordianDivContent">
+                    <div class="innerPanel clearfix" id="dvSacraResultFlt">
+                        <div class="formElement">
+                            <div class="formItemRow">
+                                <div class="col33" id="prisonerFilValid">
+                                    <div class="col100">
+                                        <label>Prisoner<span class="star">*</span></label>
+                                    </div>
+                                    <div class="col100">
+                                        <input type="text" tabindex="1" id="txtSacraRptFltPrisoner" class="searchPOP wdh190" name="txtSacraRstFltPrisoner" data-callbackfn="sacraRst.PrisonerKPressCBack" data-bind="value:SACRAResultSearchParams.PrisonerName" onkeydown="uim.Readonly(event)" />
+                                        <a href="javascript:void(0)" tabindex="2" title="Search" data-bind="click: SearchPrisoner, attr: { data-searchtype: SearchCategory.Search }"></a>
+                                        <span data-for="txtSacraRstFltPrisoner" class="k-invalid-msg"></span>
+                                    </div>
+                                </div>
+                                <div class="col33">
+                                    <div class="col100">
+                                        <label>Assessment Date From</label>
+                                    </div>
+                                    <div class="col100">
+                                        <input type="text" tabindex="3" class="datePicker wdh100" name="dpkSacraRstFltDateFrom" placeholder="__/__/____" data-bind="value:SACRAResultSearchParams.AssessmentDateFrom" />
+                                    </div>
+                                </div>
+                                <div class="col33">
+                                    <div class="col100">
+                                        <label>Assessment Date To</label>
+                                    </div>
+                                    <div class="col100">
+                                        <input type="text" tabindex="4" class="datePicker wdh100" name="dpkSacraRstFltDateTo" placeholder="__/__/____" data-bind="value:SACRAResultSearchParams.AssessmentDateTo" />
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="filterbtnContainer floatLeft">
+                                <button type="button" class="formSecBut" data-bind="click: Clear,disabled:IsTaskDisabled">Clear Filter</button>
+                                <button type="button" class="formPrimBut" data-bind="click: Filter,disabled:IsTaskDisabled">Apply Filter</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </li>
+        <li class="k-state-active">
+            <span class="k-link k-state-selected">SACRA Result</span>
+            <div class="clearfix" id="dvSacraResultPanel">
+                <div class="accordianDivContent">
+                    <div class="grid">
+                        <div id="grdSACRresult"></div>
+                    </div>
+                    <div class="line"></div>
+                    <div class="formElement">
+                        <div class="formItemRow">
+                            <div class="col25" id="prisonerAValid">
+                                <div class="col100"><label>Prisoner A<span class="star">*</span></label></div>
+                                <div class="col100">
+                                    <input type="text" tabindex="3" id="prisonerA" class="searchPOP wdh190" name="txtSacraRstPrisonerA" data-callbackfn="sacraRst.FirstPrisonerKPressCBack" data-bind="value:SacraResultDetails.PrisonerFirstName,disabled:IsFSectiondisabled" onkeydown="uim.Readonly(event)" />
+                                    <a href="javascript:void(0)" title="Search" data-bind="click: SearchPrisoner,disabled:IsFSectiondisabled, attr: { data-searchtype: SearchCategory.FirstPrisoner }"></a>
+                                </div>
+                                <div class="col100"><span data-for="txtSacraRstPrisonerA" class="k-invalid-msg"></span></div>
+                                <div class="col100"><label>PRN</label></div>
+                                <div class="col100"><input type="text" class="wdh190" data-bind="value:SacraResultDetails.PrisonerFirstPRN" readonly disabled="true" /></div>
+                            </div>
+                            <div class="col25" id="prisonerBValid">
+                                <div class="col100"><label>Prisoner B<span class="star" data-bind="visible:IsSecondPrisonerRequired">*</span></label></div>
+                                <div class="col100">
+                                    <input type="text" id="prisonerB" class="searchPOP wdh190" name="txtSacraRstPrisonerB" data-callbackfn="sacraRst.SecondPrisonerKPressCBack" data-bind="value:SacraResultDetails.PrisonerSecondName,disabled:IsSecondPrisonerdisabled" onkeydown="uim.Readonly(event)" />
+                                    <a href="javascript:void(0)" title="Search" data-bind="click: SearchPrisoner,disabled:IsSecondPrisonerdisabled, attr: { data-searchtype: SearchCategory.SecondPrisoner }"></a>
+                                </div>
+                                <div class="col100"><span data-for="txtSacraRstPrisonerB" class="k-invalid-msg"></span></div>
+                                <div class="col100"><label>PRN</label></div>
+                                <div class="col100"><input type="text" class="wdh190" data-bind="value:SacraResultDetails.PrisonerSecondPRN" readonly disabled="true" /></div>
+                            </div>
+                            <div class="col25" id="prisonerCValid" style="display:none">
+                                <div class="col100"><label>Prisoner C</label></div>
+                                <div class="col100">
+                                    <input type="text" id="prisonerC" class="searchPOP wdh190" name="txtSacraRstPrisonerC" data-callbackfn="sacraRst.ThirdPrisonerKPressCBack" data-bind="value:SacraResultDetails.PrisonerThirdName,disabled:IsThirdPrisonerdisabled" onkeydown="uim.Readonly(event)" />
+                                    <a href="javascript:void(0)" title="Search" data-bind="click: SearchPrisoner,disabled:IsThirdPrisonerdisabled, attr: { data-searchtype: SearchCategory.ThirdPrisoner }"></a>
+                                </div>
+                                <div class="col100"><span data-for="txtSacraRstPrisonerC" class="k-invalid-msg"></span></div>
+                                <div class="col100"><label>PRN</label></div>
+                                <div class="col100"><input type="text" class="wdh190" data-bind="value:SacraResultDetails.PrisonerThirdPRN" readonly disabled="true" /></div>
+                            </div>
+                            <div class="col25" id="prisonerDValid" style="display:none">
+                                <div class="col100"><label>Prisoner D</label></div>
+                                <div class="col100">
+                                    <input type="text" id="prisonerD" class="searchPOP wdh190" name="txtSacraRstPrisonerD" data-callbackfn="sacraRst.FourthPrisonerKPressCBack" data-bind="value:SacraResultDetails.PrisonerFourthName,disabled:IsFourthPrisonerdisabled" onkeydown="uim.Readonly(event)" />
+                                    <a href="javascript:void(0)" title="Search" data-bind="click: SearchPrisoner,disabled:IsFourthPrisonerdisabled, attr: { data-searchtype: SearchCategory.FourthPrisoner }"></a>
+                                </div>
+                                <div class="col100"><span data-for="txtSacraRstPrisonerD" class="k-invalid-msg"></span></div>
+                                <div class="col100"><label>PRN</label></div>
+                                <div class="col100"><input type="text" class="wdh190" data-bind="value:SacraResultDetails.PrisonerFourthPRN" readonly disabled="true" /></div>
+                            </div>
+                        </div>
+
+                        <div class="formItemRow" style="display:none">
+                            <div class="col25" id="prisonerEValid">
+                                <div class="col100"><label>Prisoner E</label></div>
+                                <div class="col100">
+                                    <input type="text" id="prisonerE" class="searchPOP wdh190" name="txtSacraRstPrisonerE" data-callbackfn="sacraRst.FifthPrisonerKPressCBack" data-bind="value:SacraResultDetails.PrisonerFifthName,disabled:IsFifthPrisonerdisabled" onkeydown="uim.Readonly(event)" />
+                                    <a href="javascript:void(0)" title="Search" data-bind="click: SearchPrisoner,disabled:IsFifthPrisonerdisabled, attr: { data-searchtype: SearchCategory.FifthPrisoner }"></a>
+                                </div>
+                                <div class="col100"><span data-for="txtSacraRstPrisonerE" class="k-invalid-msg"></span></div>
+                                <div class="col100"><label>PRN</label></div>
+                                <div class="col100"><input type="text" class="wdh190" data-bind="value:SacraResultDetails.PrisonerFifthPRN" readonly disabled="true" /></div>
+                            </div>
+                            <div class="col25" id="prisonerFValid">
+                                <div class="col100"><label>Prisoner F</label></div>
+                                <div class="col100">
+                                    <input type="text" id="prisonerF" class="searchPOP wdh190" name="txtSacraRstPrisonerF" data-callbackfn="sacraRst.SixthPrisonerKPressCBack" data-bind="value:SacraResultDetails.PrisonerSixthName,disabled:IsSixthPrisonerdisabled" onkeydown="uim.Readonly(event)" />
+                                    <a href="javascript:void(0)" title="Search" data-bind="click: SearchPrisoner,disabled:IsSixthPrisonerdisabled, attr: { data-searchtype: SearchCategory.SixthPrisoner }"></a>
+                                </div>
+                                <div class="col100"><span data-for="txtSacraRstPrisonerF" class="k-invalid-msg"></span></div>
+                                <div class="col100"><label>PRN</label></div>
+                                <div class="col100"><input type="text" class="wdh190" data-bind="value:SacraResultDetails.PrisonerSixthPRN" readonly disabled="true" /></div>
+                            </div>
+                            <div class="col25" id="prisonerGValid">
+                                <div class="col100"><label>Prisoner G</label></div>
+                                <div class="col100">
+                                    <input type="text" id="prisonerG" class="searchPOP wdh190" name="txtSacraRstPrisonerG" data-callbackfn="sacraRst.SeventhPrisonerKPressCBack" data-bind="value:SacraResultDetails.PrisonerSeventhName,disabled:IsSeventhPrisonerdisabled" onkeydown="uim.Readonly(event)" />
+                                    <a href="javascript:void(0)" title="Search" data-bind="click: SearchPrisoner,disabled:IsSeventhPrisonerdisabled, attr: { data-searchtype: SearchCategory.SeventhPrisoner }"></a>
+                                </div>
+                                <div class="col100"><span data-for="txtSacraRstPrisonerG" class="k-invalid-msg"></span></div>
+                                <div class="col100"><label>PRN</label></div>
+                                <div class="col100"><input type="text" class="wdh190" data-bind="value:SacraResultDetails.PrisonerSeventhPRN" readonly disabled="true" /></div>
+                            </div>
+                            <div class="col25" id="prisonerHValid">
+                                <div class="col100"><label>Prisoner H</label></div>
+                                <div class="col100">
+                                    <input type="text" id="prisonerH" class="searchPOP wdh190" name="txtSacraRstPrisonerH" data-callbackfn="sacraRst.EighthPrisonerKPressCBack" data-bind="value:SacraResultDetails.PrisonerEighthName,disabled:IsEighthPrisonerdisabled" onkeydown="uim.Readonly(event)" />
+                                    <a href="javascript:void(0)" title="Search" data-bind="click: SearchPrisoner,disabled:IsEighthPrisonerdisabled, attr: { data-searchtype: SearchCategory.EighthPrisoner }"></a>
+                                </div>
+                                <div class="col100"><span data-for="txtSacraRstPrisonerH" class="k-invalid-msg"></span></div>
+                                <div class="col100"><label>PRN</label></div>
+                                <div class="col100"><input type="text" class="wdh190" data-bind="value:SacraResultDetails.PrisonerEighthPRN" readonly disabled="true" /></div>
+                            </div>
+                        </div>
+
+                        <div class="formItemRow" style="display:none">
+                            <div class="col25" id="prisonerIValid">
+                                <div class="col100"><label>Prisoner I</label></div>
+                                <div class="col100">
+                                    <input type="text" id="prisonerI" class="searchPOP wdh190" name="txtSacraRstPrisonerI" data-callbackfn="sacraRst.NinthPrisonerKPressCBack" data-bind="value:SacraResultDetails.PrisonerNinthName,disabled:IsNinthPrisonerdisabled" onkeydown="uim.Readonly(event)" />
+                                    <a href="javascript:void(0)" title="Search" data-bind="click: SearchPrisoner,disabled:IsNinthPrisonerdisabled, attr: { data-searchtype: SearchCategory.NinthPrisoner }"></a>
+                                </div>
+                                <div class="col100"><span data-for="txtSacraRstPrisonerI" class="k-invalid-msg"></span></div>
+                                <div class="col100"><label>PRN</label></div>
+                                <div class="col100"><input type="text" class="wdh190" data-bind="value:SacraResultDetails.PrisonerNinthPRN" readonly disabled="true" /></div>
+                                
+                            </div>
+                            <div class="col25" id="prisonerJValid">
+                                <div class="col100"><label>Prisoner J</label></div>
+                                <div class="col100">
+                                    <input type="text" id="prisonerJ" class="searchPOP wdh190" name="txtSacraRstPrisonerJ" data-callbackfn="sacraRst.TenthPrisonerKPressCBack" data-bind="value:SacraResultDetails.PrisonerTenthName,disabled:IsTenthPrisonerdisabled" onkeydown="uim.Readonly(event)" />
+                                    <a href="javascript:void(0)" title="Search" data-bind="click: SearchPrisoner,disabled:IsTenthPrisonerdisabled, attr: { data-searchtype: SearchCategory.TenthPrisoner }"></a>
+                                </div>
+                                <div class="col100"><span data-for="txtSacraRstPrisonerJ" class="k-invalid-msg"></span></div>
+                                <div class="col100"><label>PRN</label></div>
+                                <div class="col100"><input type="text" class="wdh190" data-bind="value:SacraResultDetails.PrisonerTenthPRN" readonly disabled="true" /></div>                               
+                            </div>
+                        </div>
+                        <div class="formItemRow">
+                            <div class="col25" id="assessmentResult">
+                                <div class="col100"><label>Assessment Result<span class="star">*</span></label></div>
+                                <div class="col100">
+                                    <input data-role="combobox" tabindex="4" data-placeholder="--Select--" id="cboSacraResultAssessRst" name="cboSacraResultAssessRst"
+                                           data-text-field="DisplayText" data-value-field="Value" data-bind="source:AssessmentSource,value:SacraResultDetails.AssessmentResult,disabled:IsFSectiondisabled,events:{change:AssessmentResultChange}" />
+                                </div>
+                            </div>
+                            <div class="col25" id="assessmentDate">
+                                <div class="col100"><label>Assessment Date<span class="star">*</span></label></div>
+                                <div class="col100">
+                                    <div class="col60">
+                                        <input class="datePicker" id="dpAssessmentDate" name="dpAssessmentDate" placeholder="__/__/____" data-role="datepicker" data-bind="value: SacraResultDetails.AssessmentDate" disabled="disabled" />
+                                    </div>
+                                    <div class="col40">
+                                        <input id="tpAssessmentTime" name="tpAssessmentTime" class="timePicker" data-role="timepicker" data-bind="value: AssessmentTime" disabled="disabled" />
+                                    </div>
+                                </div>
+                            </div>                           
+                        </div>
+                        <div class="formItemRow">
+                            <div class="col100">
+                                <label>Additional Comments<span class="star">*</span></label>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="formItemRow">
+                        <textarea name="txtSacraResultComments" tabindex="5" class="wdh100p height120" data-bind="value:SacraResultDetails.AdditionalComments,readonly:IsFSectiondisabled" maxlength="500"></textarea>
+                        <span data-for="txtSacraResultComments" class="k-invalid-msg"></span>
+                    </div>
+                    <div class="line"></div>
+                    <div class="formItemRow">
+                        <div class="col50">
+                            <label>
+                                Created:
+                                <label data-bind="text:Created"></label>
+                            </label>
+                        </div>
+                        <div class="col50">
+                            <label>
+                                Updated:
+                                <label data-bind="text:Updated"></label>
+                            </label>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </li>
+    </ul>
+</div>
+@section ViewName{
+    <div class="pageHeader" id="dvSacraResultPageHeader">
+        <div class="inline">SACRA Result</div>
+        <div class="inline floatRight">
+            <a href="javascript:void(0)" data-bind="click:New,disabled:IsNewDisabled" class="icon-new" alt="New" title="New"></a>
+            <a href="javascript:void(0)" data-bind="click:Edit,disabled:IsEditDisabled" class="icon-edit" alt="Edit" title="Edit"></a>
+            <a href="javascript:void(0)" data-bind="click:Save,disabled:IsSaveDisabled" class="icon-save" alt="Save" title="Save"></a>
+            <a href="javascript:void(0)" id="printPreview" class="icon-printpreview" alt="Print Preview" title="Print Preview" data-bind="disabled: IsPrintPreviewDisabled, click:OnPrintPreviewClick"></a>
+            <a href="javascript:void(0)" data-bind="click:Cancel,disabled:IsCancelDisabled" class="icon-cancel" alt="Cancel" title="Cancel"></a>
+        </div>
+    </div>
+}
+
+@section MandatoryFields{
+    <div class="mandatoryLegend"><span class="star">*</span> Mandatory Fields</div>
+}
+@section BreadCrumb{
+    <div class="breadCrumb">@Html.Partial("_BreadCrumb")</div>
+}
+@section TaskButtonItems{
+    <div class="col100 ">
+        <div class="taskSection" id="dvSacraResultTaskSec">
+            <ul>
+                <li class="drpdwn">
+                    <a href="javascript:void(0);">
+                        <img src="~/Content/Images/report.jpg" title="Reports" alt="Reports" />
+                    </a>
+                    <div class="secMenu">
+                        <ul class="oneCol">
+                            <li><a href="~/riskassessmentsacrareport/sacrareport" title="SACRA Report" data-bind="disabled:DisabledReportLnk">SACRA Report</a></li>
+                            <li><a href="javascript:void(0)" title="Combined SACRA Report" data-bind="click:OnCombinedSACRAReportClick,disabled:DisabledCombinedReportLnk">CombinedSACRA Report</a></li>
+                        </ul>
+                    </div>
+                </li>
+                <li class="drpdwn">
+                    <a href="javascript:void(0);">
+                        <img src="~/Content/Images/relatedLinks.jpg" title="Related Links" alt="Related Links" />
+                    </a>
+                    <div class="secMenu">
+                        <ul class="oneCol">
+                            <li><a title="Alerts" id="rlAlert" href="javascript:void(0);" data-bind="click:AlertClick,disabled:DisabledAlertLnk">Alerts</a></li>
+                        </ul>
+                    </div>
+                </li>
+            </ul>
+        </div>
+    </div>
+}
+
