@@ -1,0 +1,106 @@
+create or replace PROCEDURE ro_getsacraactivechargecombined (
+    pi_cell_sharing_risk_assmnt_id IN VARCHAR2,
+    pi_request_ids                 IN VARCHAR2,
+    po_cursor                      IN OUT iomstypes.rs_out_ref_cursor
+)
+AS
+--begin_property_map
+--scriptid=ro_getsacraactivechargecombined.sql
+--type=procedure
+--name=ro_getsacraactivechargecombined
+--order=
+--ref=
+--oledocid=
+--oledocname=
+--releaseintroduced=
+--releasemodified=
+--release=yes
+--end_property_map
+/*
+Updated By    : Minh Nguyen
+Updated Date  : 22-Jun-2026
+Purpose       : ADO US#56371- Custodial- Sacra changes
+*/
+BEGIN
+
+    IF pi_cell_sharing_risk_assmnt_id IS NULL
+       OR TRIM(pi_cell_sharing_risk_assmnt_id) IS NULL
+       OR pi_request_ids IS NULL
+       OR TRIM(pi_request_ids) IS NULL THEN
+
+        OPEN po_cursor FOR
+            SELECT
+                CAST(NULL AS NUMBER)         AS pair_group_no,
+                CAST(NULL AS VARCHAR2(1))    AS pair_slot,
+                CAST(NULL AS VARCHAR2(50))   AS prisoner_id,
+                CAST(NULL AS VARCHAR2(50))   AS prn,
+                CAST(NULL AS VARCHAR2(50))   AS offence_code,
+                CAST(NULL AS VARCHAR2(4000)) AS offence_desc,
+                CAST(NULL AS VARCHAR2(100))  AS crn,
+                CAST(NULL AS NUMBER)         AS charge_count,
+                CAST(NULL AS VARCHAR2(4000)) AS charge_text
+            FROM
+                dual
+            WHERE
+                1 = 0;
+
+        RETURN;
+    END IF;
+
+    OPEN po_cursor FOR
+        WITH sacra_prisoners AS (
+            SELECT
+                csp.prisoner_id,
+                csp.prisoner_order_num,
+                FLOOR(csp.prisoner_order_num / 2) + 1 AS pair_group_no,
+                CASE
+                    WHEN MOD(csp.prisoner_order_num, 2) = 0 THEN 'A'
+                    ELSE 'B'
+                END AS pair_slot,
+                TRIM(ioms.pkg_da_offender.get_prn_dlicno_by_service(csp.prisoner_id, 'PPS')) AS prn
+            FROM
+                ioms.om_cell_sharing_prisoner csp
+            WHERE
+                csp.cell_sharing_risk_assmnt_id = pi_cell_sharing_risk_assmnt_id
+        )
+        SELECT
+            sp.pair_group_no,
+            sp.pair_slot,
+            sp.prisoner_id,
+            sp.prn,
+            TRIM(qac.code_offence) AS offence_code,
+            DECODE(qac.charge_description, NULL, epic.ef_lookup_text('OFFENCE CODE', qac.code_offence, 'IC'),qac.charge_description ) AS offence_desc,
+            MAX(qac.crn) AS crn,
+            COUNT(*) AS charge_count
+
+        FROM
+            sacra_prisoners sp
+            INNER JOIN epic.eh_ii_qac_active_charge qac
+                ON TRIM(qac.identifier) = sp.prn
+        WHERE
+            qac.request_id IN (
+                SELECT
+                    TO_NUMBER(TRIM(column_value))
+                FROM
+                    TABLE(ioms.fn_split(pi_request_ids, ','))
+                WHERE
+                    REGEXP_LIKE(TRIM(column_value), '^[0-9]+$')
+            )
+        GROUP BY
+            sp.pair_group_no,
+            sp.pair_slot,
+            sp.prisoner_id,
+            sp.prn,
+            TRIM(qac.code_offence),
+            DECODE(
+                qac.charge_description,
+                NULL,
+                epic.ef_lookup_text('OFFENCE CODE', qac.code_offence, 'IC'),
+                qac.charge_description
+            )
+        ORDER BY
+            sp.pair_group_no,
+            sp.pair_slot,
+            MAX(qac.crn);
+
+END;
